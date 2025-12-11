@@ -2,27 +2,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Download, ExternalLink, Terminal, CheckCircle2, AlertTriangle, Info, Shield, Swords, Coins, Zap, Server } from "lucide-react";
-import { motion } from "framer-motion";
 
 export default function Home() {
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       {/* Navbar */}
@@ -50,10 +31,7 @@ export default function Home() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/10 rounded-full blur-3xl -z-10" />
         
         <div className="max-w-4xl mx-auto text-center relative z-10 space-y-8">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+          <div 
             className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-4"
           >
             <span className="relative flex h-2 w-2">
@@ -61,31 +39,22 @@ export default function Home() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
             </span>
             v2.0 Disponível Agora
-          </motion.div>
+          </div>
           
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+          <h1 
             className="text-5xl md:text-7xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-white/50"
           >
             O Bot Definitivo para <br/>
             <span className="text-primary">Competitivo e Apostas</span>
-          </motion.h1>
+          </h1>
           
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+          <p 
             className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed"
           >
             Gerencie filas 1v1, sistemas de apostas e moderação do seu servidor de Discord com uma única ferramenta poderosa e fácil de usar.
-          </motion.p>
+          </p>
           
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
+          <div 
             className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4"
           >
             <Button size="lg" className="h-12 px-8 text-base bg-white text-black hover:bg-white/90 w-full sm:w-auto">
@@ -97,7 +66,7 @@ export default function Home() {
                 Instalar no Render
               </Button>
             </a>
-          </motion.div>
+          </div>
         </div>
       </section>
 
