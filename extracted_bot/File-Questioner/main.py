@@ -5446,8 +5446,8 @@ async def start_web_server():
     runner = web.AppRunner(app)
     await runner.setup()
     
-    # Porta fixa: 5000
-    port = 5000
+    # Porta dinâmica (necessário para Render) ou fixa 5000 (local)
+    port = int(os.getenv("PORT", 5000))
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
     print(f'✅ Servidor HTTP rodando na porta {port}')
