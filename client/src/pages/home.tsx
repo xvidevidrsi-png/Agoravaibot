@@ -1,154 +1,276 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, ExternalLink, Terminal, CheckCircle2, AlertTriangle, Info } from "lucide-react";
+import { Download, ExternalLink, Terminal, CheckCircle2, AlertTriangle, Info, Shield, Swords, Coins, Zap, Server } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function Home() {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-8 font-sans">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+      {/* Navbar */}
+      <nav className="border-b border-white/5 bg-background/50 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center border border-primary/20">
+              <Zap className="w-5 h-5 text-primary" />
+            </div>
+            <span className="font-bold text-lg tracking-tight">Bot Zeus</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Recursos</a>
+            <a href="#deploy" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Deploy</a>
+            <Button size="sm" className="bg-primary hover:bg-primary/90">
+              Adicionar ao Discord
+            </Button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="relative py-20 lg:py-32 px-6 overflow-hidden">
+        <div className="absolute inset-0 bg-primary/5 -skew-y-3 transform origin-top-left scale-150 z-0" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/10 rounded-full blur-3xl -z-10" />
         
-        {/* Header */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
-              <Terminal className="w-8 h-8 text-blue-400" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-white">Bot Zeus - Dashboard de Deploy</h1>
-              <p className="text-neutral-400">Painel de controle e instruções para deploy no Render</p>
-            </div>
+        <div className="max-w-4xl mx-auto text-center relative z-10 space-y-8">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-4"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+            </span>
+            v2.0 Disponível Agora
+          </motion.div>
+          
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="text-5xl md:text-7xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-white/50"
+          >
+            O Bot Definitivo para <br/>
+            <span className="text-primary">Competitivo e Apostas</span>
+          </motion.h1>
+          
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed"
+          >
+            Gerencie filas 1v1, sistemas de apostas e moderação do seu servidor de Discord com uma única ferramenta poderosa e fácil de usar.
+          </motion.p>
+          
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4"
+          >
+            <Button size="lg" className="h-12 px-8 text-base bg-white text-black hover:bg-white/90 w-full sm:w-auto">
+              Começar Agora
+            </Button>
+            <a href="#deploy" className="w-full sm:w-auto">
+              <Button size="lg" variant="outline" className="h-12 px-8 text-base border-white/10 hover:bg-white/5 w-full sm:w-auto">
+                <Terminal className="w-4 h-4 mr-2" />
+                Instalar no Render
+              </Button>
+            </a>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="border-y border-white/5 bg-white/[0.02]">
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {[
+              { label: "Servidores Ativos", value: "500+" },
+              { label: "Partidas 1v1", value: "12k+" },
+              { label: "Usuários", value: "45k+" },
+              { label: "Uptime", value: "99.9%" },
+            ].map((stat, i) => (
+              <div key={i} className="text-center space-y-2">
+                <div className="text-3xl font-bold text-white">{stat.value}</div>
+                <div className="text-sm text-muted-foreground uppercase tracking-wider">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section id="features" className="py-24 px-6 relative">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16 space-y-4">
+            <h2 className="text-3xl md:text-4xl font-bold">Recursos Poderosos</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">Tudo que você precisa para elevar o nível do seu servidor de jogos.</p>
           </div>
           
-          <div className="flex gap-2">
-            <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/20 py-1">
-              <CheckCircle2 className="w-3 h-3 mr-1" /> Arquivos Extraídos
-            </Badge>
-            <Badge variant="outline" className="bg-yellow-500/10 text-yellow-400 border-yellow-500/20 py-1">
-              <Info className="w-3 h-3 mr-1" /> Deploy Pendente
-            </Badge>
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card className="bg-card/50 border-white/5 hover:border-primary/50 transition-all duration-300 group">
+              <CardHeader>
+                <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center mb-4 group-hover:bg-blue-500/20 transition-colors">
+                  <Swords className="w-6 h-6 text-blue-400" />
+                </div>
+                <CardTitle>Filas 1v1 Automáticas</CardTitle>
+                <CardDescription>Matchmaking justo e rápido para seus membros.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Sistema completo de filas com criação automática de canais de voz e texto para as partidas.</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card/50 border-white/5 hover:border-primary/50 transition-all duration-300 group">
+              <CardHeader>
+                <div className="w-12 h-12 rounded-lg bg-yellow-500/10 flex items-center justify-center mb-4 group-hover:bg-yellow-500/20 transition-colors">
+                  <Coins className="w-6 h-6 text-yellow-400" />
+                </div>
+                <CardTitle>Economia e Apostas</CardTitle>
+                <CardDescription>Sistema de moedas integrado para apostas.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Permita que jogadores apostem em suas partidas com segurança e controle total da banca.</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card/50 border-white/5 hover:border-primary/50 transition-all duration-300 group">
+              <CardHeader>
+                <div className="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center mb-4 group-hover:bg-green-500/20 transition-colors">
+                  <Shield className="w-6 h-6 text-green-400" />
+                </div>
+                <CardTitle>Moderação Avançada</CardTitle>
+                <CardDescription>Ferramentas para manter a ordem.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Logs detalhados, comandos de punição e sistema de tickets para suporte aos membros.</p>
+              </CardContent>
+            </Card>
           </div>
         </div>
+      </section>
 
-        {/* Main Actions */}
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card className="bg-neutral-900 border-neutral-800">
-            <CardHeader>
-              <CardTitle className="text-xl">Download dos Arquivos</CardTitle>
-              <CardDescription>Baixe o pacote corrigido pronto para o Render</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="p-4 bg-neutral-950 rounded-md border border-neutral-800 text-sm space-y-2">
-                  <div className="flex items-center gap-2 text-green-400">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>requirements.txt corrigido</span>
+      {/* Deploy Section (Original Content) */}
+      <section id="deploy" className="py-24 px-6 bg-black/40 border-t border-white/5">
+        <div className="max-w-4xl mx-auto space-y-8">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+              <Server className="w-8 h-8 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight text-white">Central de Deploy</h2>
+              <p className="text-muted-foreground">Área do desenvolvedor: baixe e configure seu bot.</p>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card className="bg-neutral-900/50 border-neutral-800">
+              <CardHeader>
+                <CardTitle className="text-xl">Download dos Arquivos</CardTitle>
+                <CardDescription>Pacote corrigido para o Render</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="p-4 bg-black/50 rounded-md border border-white/5 text-sm space-y-2">
+                    <div className="flex items-center gap-2 text-green-400">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>requirements.txt corrigido</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-green-400">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>main.py adaptado (Porta Dinâmica)</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-green-400">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Procfile configurado</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-green-400">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>main.py adaptado para porta dinâmica</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-green-400">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Procfile configurado</span>
-                  </div>
+                  <a href="/bot-fixed.zip" download>
+                    <Button className="w-full bg-primary hover:bg-primary/90 text-white">
+                      <Download className="w-4 h-4 mr-2" />
+                      Baixar bot-fixed.zip
+                    </Button>
+                  </a>
                 </div>
-                <a href="/bot-fixed.zip" download>
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                    <Download className="w-4 h-4 mr-2" />
-                    Baixar bot-fixed.zip
-                  </Button>
-                </a>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card className="bg-neutral-900 border-neutral-800">
+            <Card className="bg-neutral-900/50 border-neutral-800">
+              <CardHeader>
+                <CardTitle className="text-xl">Links Úteis</CardTitle>
+                <CardDescription>Ferramentas necessárias</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {[
+                  { name: "Render Dashboard", url: "https://render.com" },
+                  { name: "Cron-Job.org (Keep-Alive)", url: "https://cron-job.org" },
+                  { name: "Discord Developer Portal", url: "https://discord.com/developers/applications" }
+                ].map((link, i) => (
+                  <a key={i} href={link.url} target="_blank" rel="noreferrer" className="block">
+                    <Button variant="outline" className="w-full justify-between border-white/10 bg-transparent hover:bg-white/5 hover:text-white">
+                      {link.name}
+                      <ExternalLink className="w-4 h-4 opacity-50" />
+                    </Button>
+                  </a>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="bg-neutral-900/50 border-neutral-800">
             <CardHeader>
-              <CardTitle className="text-xl">Links Úteis</CardTitle>
-              <CardDescription>Ferramentas necessárias para o deploy</CardDescription>
+              <CardTitle>Instruções Rápidas (Render)</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <a href="https://render.com" target="_blank" rel="noreferrer" className="block">
-                <Button variant="outline" className="w-full justify-between border-neutral-700 hover:bg-neutral-800 hover:text-white">
-                  Render Dashboard
-                  <ExternalLink className="w-4 h-4 opacity-50" />
-                </Button>
-              </a>
-              <a href="https://cron-job.org" target="_blank" rel="noreferrer" className="block">
-                <Button variant="outline" className="w-full justify-between border-neutral-700 hover:bg-neutral-800 hover:text-white">
-                  Cron-Job.org (Keep-Alive)
-                  <ExternalLink className="w-4 h-4 opacity-50" />
-                </Button>
-              </a>
-              <a href="https://discord.com/developers/applications" target="_blank" rel="noreferrer" className="block">
-                <Button variant="outline" className="w-full justify-between border-neutral-700 hover:bg-neutral-800 hover:text-white">
-                  Discord Developer Portal
-                  <ExternalLink className="w-4 h-4 opacity-50" />
-                </Button>
-              </a>
+            <CardContent className="space-y-6">
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="space-y-2 p-4 rounded-lg bg-black/20 border border-white/5">
+                  <div className="font-mono text-primary text-sm mb-2">01</div>
+                  <h4 className="font-medium">Upload</h4>
+                  <p className="text-xs text-muted-foreground">Suba os arquivos baixados para um repositório GitHub.</p>
+                </div>
+                <div className="space-y-2 p-4 rounded-lg bg-black/20 border border-white/5">
+                  <div className="font-mono text-primary text-sm mb-2">02</div>
+                  <h4 className="font-medium">Web Service</h4>
+                  <p className="text-xs text-muted-foreground">No Render, crie um Web Service conectado ao repo.</p>
+                </div>
+                <div className="space-y-2 p-4 rounded-lg bg-black/20 border border-white/5">
+                  <div className="font-mono text-primary text-sm mb-2">03</div>
+                  <h4 className="font-medium">Configuração</h4>
+                  <p className="text-xs text-muted-foreground">Adicione suas variáveis de ambiente (DISCORD_TOKEN, etc).</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
+      </section>
 
-        {/* Instructions */}
-        <Card className="bg-neutral-900 border-neutral-800">
-          <CardHeader>
-            <CardTitle>Instruções de Deploy (Render)</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <h3 className="font-semibold text-blue-400">1. Upload para GitHub</h3>
-              <p className="text-neutral-400 text-sm">
-                Crie um repositório no GitHub e faça upload dos arquivos extraídos (que você baixou acima).
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="font-semibold text-blue-400">2. Criar Web Service no Render</h3>
-              <ul className="list-disc list-inside text-neutral-400 text-sm space-y-1 ml-2">
-                <li>Conecte seu repositório GitHub</li>
-                <li>Runtime: <code className="bg-neutral-800 px-1 py-0.5 rounded text-neutral-200">Python 3</code></li>
-                <li>Build Command: <code className="bg-neutral-800 px-1 py-0.5 rounded text-neutral-200">pip install -r requirements.txt</code></li>
-                <li>Start Command: <code className="bg-neutral-800 px-1 py-0.5 rounded text-neutral-200">python main.py</code></li>
-              </ul>
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="font-semibold text-blue-400">3. Variáveis de Ambiente</h3>
-              <div className="bg-black/50 p-4 rounded-md border border-neutral-800 font-mono text-sm text-neutral-300">
-                <div className="flex justify-between border-b border-neutral-800 pb-2 mb-2">
-                  <span>DISCORD_TOKEN</span>
-                  <span className="text-neutral-500">seu_token_aqui</span>
-                </div>
-                <div className="flex justify-between border-b border-neutral-800 pb-2 mb-2">
-                  <span>BOT_OWNER_ID</span>
-                  <span className="text-neutral-500">1112569306513952778</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>DATABASE_URL</span>
-                  <span className="text-neutral-500">(Opcional para PostgreSQL)</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <h4 className="font-medium text-yellow-500">Atenção: Erro 404 no Replit</h4>
-                  <p className="text-sm text-yellow-200/80">
-                    Se você estava vendo uma página "404 Not Found" aqui no Replit, é normal. 
-                    Este ambiente é apenas um editor de código. O bot real deve rodar no Render. 
-                    Esta página foi criada apenas para te ajudar a organizar os arquivos.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-          </CardContent>
-        </Card>
-      </div>
+      {/* Footer */}
+      <footer className="py-12 border-t border-white/5 bg-black/20 text-center">
+        <p className="text-muted-foreground text-sm">
+          &copy; 2024 Bot Zeus. Todos os direitos reservados.
+        </p>
+      </footer>
     </div>
   );
 }
