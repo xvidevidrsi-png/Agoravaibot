@@ -1,49 +1,43 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-import sqlite3
 import os
 import datetime
 from dotenv import load_dotenv
+from database import get_connection, execute_query
 
 load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL")
-DB_FILE = "bot_zeus.db"
-
-def get_connection():
-    if DATABASE_URL:
-        import psycopg2
-        return psycopg2.connect(DATABASE_URL)
-    return sqlite3.connect(DB_FILE, timeout=1.0)
 
 def db_set_config(k, v):
     conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("INSERT OR REPLACE INTO config (k,v) VALUES (?,?)", (k, v))
-    conn.commit()
-    conn.close()
+    try:
+        execute_query(conn, "INSERT OR REPLACE INTO config (k,v) VALUES (?,?)", (k, v))
+        conn.commit()
+    finally:
+        conn.close()
 
 def db_get_config(k):
     conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT v FROM config WHERE k = ?", (k,))
-    row = cur.fetchone()
-    conn.close()
-    return row[0] if row else None
+    try:
+        cur = execute_query(conn, "SELECT v FROM config WHERE k = ?", (k,))
+        row = cur.fetchone()
+        return row[0] if row else None
+    finally:
+        conn.close()
 
 def is_admin(user_id, guild=None, member=None):
     conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT 1 FROM admins WHERE user_id = ?", (user_id,))
-    result = cur.fetchone()
-    conn.close()
-    return result is not None
+    try:
+        cur = execute_query(conn, "SELECT 1 FROM admins WHERE user_id = ?", (user_id,))
+        result = cur.fetchone()
+        return result is not None
+    finally:
+        conn.close()
 
 def admin_add(user_id):
     conn = get_connection()
-    cur = conn.cursor()
     try:
-        cur.execute("INSERT OR IGNORE INTO admins (user_id, adicionado_em) VALUES (?, ?)", 
+        execute_query(conn, "INSERT OR IGNORE INTO admins (user_id, adicionado_em) VALUES (?, ?)", 
                    (user_id, datetime.datetime.utcnow().isoformat()))
         conn.commit()
     finally:

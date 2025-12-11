@@ -2,49 +2,46 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import os
-import sqlite3
+import datetime
 from dotenv import load_dotenv
+from database import get_connection, execute_query
 
 load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL")
-DB_FILE = "bot_zeus.db"
-
-def get_connection():
-    if DATABASE_URL:
-        import psycopg2
-        return psycopg2.connect(DATABASE_URL)
-    return sqlite3.connect(DB_FILE, timeout=1.0)
 
 def verificar_separador_servidor(guild_id):
     conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT 1 FROM config WHERE k = ?", (f"servidor_registrado_{guild_id}",))
-    result = cur.fetchone()
-    conn.close()
-    return result is not None
+    try:
+        cur = execute_query(conn, "SELECT 1 FROM config WHERE k = ?", (f"servidor_registrado_{guild_id}",))
+        result = cur.fetchone()
+        return result is not None
+    finally:
+        conn.close()
 
 def is_admin(user_id, guild=None, member=None):
     conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT 1 FROM admins WHERE user_id = ?", (user_id,))
-    result = cur.fetchone()
-    conn.close()
-    return result is not None
+    try:
+        cur = execute_query(conn, "SELECT 1 FROM admins WHERE user_id = ?", (user_id,))
+        result = cur.fetchone()
+        return result is not None
+    finally:
+        conn.close()
 
 def mediador_get_all(guild_id):
     conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT user_id FROM fila_mediadores WHERE guild_id = ? ORDER BY adicionado_em ASC", (guild_id,))
-    result = [row[0] for row in cur.fetchall()]
-    conn.close()
-    return result
+    try:
+        cur = execute_query(conn, "SELECT user_id FROM fila_mediadores WHERE guild_id = ? ORDER BY adicionado_em ASC", (guild_id,))
+        result = [row[0] for row in cur.fetchall()]
+        return result
+    finally:
+        conn.close()
 
 def db_set_config(k, v):
     conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("INSERT OR REPLACE INTO config (k,v) VALUES (?,?)", (k, v))
-    conn.commit()
-    conn.close()
+    try:
+        execute_query(conn, "INSERT OR REPLACE INTO config (k,v) VALUES (?,?)", (k, v))
+        conn.commit()
+    finally:
+        conn.close()
 
 class FilaMediadoresView(discord.ui.View):
     def __init__(self):

@@ -3,35 +3,29 @@ from discord.ext import commands
 from discord import app_commands
 import os
 import datetime
-import sqlite3
 import asyncio
 from dotenv import load_dotenv
+from database import get_connection, execute_query
 
 load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL")
-DB_FILE = "bot_zeus.db"
 VALORES_FILAS_1V1 = [100.00, 50.00, 40.00, 30.00, 20.00, 10.00, 5.00, 3.00, 2.00, 1.00, 0.80, 0.40]
-
-def get_connection():
-    if DATABASE_URL:
-        import psycopg2
-        return psycopg2.connect(DATABASE_URL)
-    return sqlite3.connect(DB_FILE, timeout=1.0)
 
 def db_get_config(k):
     conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT v FROM config WHERE k = ?", (k,))
-    row = cur.fetchone()
-    conn.close()
-    return row[0] if row else None
+    try:
+        cur = execute_query(conn, "SELECT v FROM config WHERE k = ?", (k,))
+        row = cur.fetchone()
+        return row[0] if row else None
+    finally:
+        conn.close()
 
 def db_set_config(k, v):
     conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("INSERT OR REPLACE INTO config (k,v) VALUES (?,?)", (k, v))
-    conn.commit()
-    conn.close()
+    try:
+        execute_query(conn, "INSERT OR REPLACE INTO config (k,v) VALUES (?,?)", (k, v))
+        conn.commit()
+    finally:
+        conn.close()
 
 def fmt_valor(v):
     if v >= 1:
@@ -40,21 +34,21 @@ def fmt_valor(v):
 
 def is_admin(user_id, guild=None, member=None):
     conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT 1 FROM admins WHERE user_id = ?", (user_id,))
-    result = cur.fetchone()
-    conn.close()
-    return result is not None
+    try:
+        cur = execute_query(conn, "SELECT 1 FROM admins WHERE user_id = ?", (user_id,))
+        result = cur.fetchone()
+        return result is not None
+    finally:
+        conn.close()
 
 def verificar_separador_servidor(guild_id):
     return db_get_config(f"servidor_registrado_{guild_id}") is not None
 
 def fila_add_jogador(guild_id, valor, modo, user_id, tipo_jogo='mob'):
     conn = get_connection()
-    cur = conn.cursor()
     try:
-        cur.execute("BEGIN IMMEDIATE")
-        cur.execute("SELECT jogadores FROM filas WHERE guild_id = ? AND valor = ? AND modo = ? AND tipo_jogo = ?", 
+        execute_query(conn, "BEGIN IMMEDIATE")
+        cur = execute_query(conn, "SELECT jogadores FROM filas WHERE guild_id = ? AND valor = ? AND modo = ? AND tipo_jogo = ?", 
                    (guild_id, valor, modo, tipo_jogo))
         row = cur.fetchone()
         jogadores = []
@@ -62,19 +56,18 @@ def fila_add_jogador(guild_id, valor, modo, user_id, tipo_jogo='mob'):
             jogadores = [int(x) for x in row[0].split(",") if x.strip().isdigit()]
         if user_id not in jogadores:
             jogadores.append(user_id)
-        cur.execute("UPDATE filas SET jogadores = ? WHERE guild_id = ? AND valor = ? AND modo = ? AND tipo_jogo = ?", 
+        execute_query(conn, "UPDATE filas SET jogadores = ? WHERE guild_id = ? AND valor = ? AND modo = ? AND tipo_jogo = ?", 
                    (",".join(str(x) for x in jogadores), guild_id, valor, modo, tipo_jogo))
         conn.commit()
+        return jogadores
     finally:
         conn.close()
-    return jogadores
 
 def fila_remove_jogador(guild_id, valor, modo, user_id, tipo_jogo='mob'):
     conn = get_connection()
-    cur = conn.cursor()
     try:
-        cur.execute("BEGIN IMMEDIATE")
-        cur.execute("SELECT jogadores FROM filas WHERE guild_id = ? AND valor = ? AND modo = ? AND tipo_jogo = ?", 
+        execute_query(conn, "BEGIN IMMEDIATE")
+        cur = execute_query(conn, "SELECT jogadores FROM filas WHERE guild_id = ? AND valor = ? AND modo = ? AND tipo_jogo = ?", 
                    (guild_id, valor, modo, tipo_jogo))
         row = cur.fetchone()
         jogadores = []
@@ -82,31 +75,33 @@ def fila_remove_jogador(guild_id, valor, modo, user_id, tipo_jogo='mob'):
             jogadores = [int(x) for x in row[0].split(",") if x.strip().isdigit()]
         if user_id in jogadores:
             jogadores.remove(user_id)
-        cur.execute("UPDATE filas SET jogadores = ? WHERE guild_id = ? AND valor = ? AND modo = ? AND tipo_jogo = ?", 
+        execute_query(conn, "UPDATE filas SET jogadores = ? WHERE guild_id = ? AND valor = ? AND modo = ? AND tipo_jogo = ?", 
                    (",".join(str(x) for x in jogadores) if jogadores else "", guild_id, valor, modo, tipo_jogo))
         conn.commit()
+        return jogadores
     finally:
         conn.close()
-    return jogadores
 
 def fila_get_jogadores(guild_id, valor, modo, tipo_jogo='mob'):
     conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT jogadores FROM filas WHERE guild_id = ? AND valor = ? AND modo = ? AND tipo_jogo = ?", 
-               (guild_id, valor, modo, tipo_jogo))
-    row = cur.fetchone()
-    conn.close()
-    if row and row[0]:
-        return [int(x) for x in row[0].split(",")]
-    return []
+    try:
+        cur = execute_query(conn, "SELECT jogadores FROM filas WHERE guild_id = ? AND valor = ? AND modo = ? AND tipo_jogo = ?", 
+                   (guild_id, valor, modo, tipo_jogo))
+        row = cur.fetchone()
+        if row and row[0]:
+            return [int(x) for x in row[0].split(",")]
+        return []
+    finally:
+        conn.close()
 
 def registrar_historico_fila(guild_id, valor, modo, tipo_jogo, acao):
     conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("INSERT INTO historico_filas (guild_id, valor, modo, tipo_jogo, acao, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+    try:
+        execute_query(conn, "INSERT INTO historico_filas (guild_id, valor, modo, tipo_jogo, acao, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
                 (guild_id, valor, modo, tipo_jogo, acao, datetime.datetime.utcnow().isoformat()))
-    conn.commit()
-    conn.close()
+        conn.commit()
+    finally:
+        conn.close()
 
 class FilaCog(commands.Cog):
     def __init__(self, bot):
@@ -146,13 +141,14 @@ class FilaCog(commands.Cog):
             
             msg = await canal.send(embed=embed)
             conn = get_connection()
-            cur = conn.cursor()
-            cur.execute("INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, jogadores, msg_id, criado_em) VALUES (?, ?, 'normal', 'mob', '', ?, ?)",
-                       (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
-            cur.execute("INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, jogadores, msg_id, criado_em) VALUES (?, ?, 'infinito', 'mob', '', ?, ?)",
-                       (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
-            conn.commit()
-            conn.close()
+            try:
+                execute_query(conn, "INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, jogadores, msg_id, criado_em) VALUES (?, ?, 'normal', 'mob', '', ?, ?)",
+                           (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
+                execute_query(conn, "INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, jogadores, msg_id, criado_em) VALUES (?, ?, 'infinito', 'mob', '', ?, ?)",
+                           (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
+                conn.commit()
+            finally:
+                conn.close()
             registrar_historico_fila(guild_id, valor, "normal", "mob", "criada")
             registrar_historico_fila(guild_id, valor, "infinito", "mob", "criada")
         
@@ -178,13 +174,14 @@ class FilaCog(commands.Cog):
             embed.add_field(name="🔵 Gel Infinito", value="Nenhum", inline=True)
             msg = await canal.send(embed=embed)
             conn = get_connection()
-            cur = conn.cursor()
-            cur.execute("INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, jogadores, msg_id, criado_em) VALUES (?, ?, 'normal', 'emu', '', ?, ?)",
-                       (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
-            cur.execute("INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, jogadores, msg_id, criado_em) VALUES (?, ?, 'infinito', 'emu', '', ?, ?)",
-                       (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
-            conn.commit()
-            conn.close()
+            try:
+                execute_query(conn, "INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, jogadores, msg_id, criado_em) VALUES (?, ?, 'normal', 'emu', '', ?, ?)",
+                           (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
+                execute_query(conn, "INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, jogadores, msg_id, criado_em) VALUES (?, ?, 'infinito', 'emu', '', ?, ?)",
+                           (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
+                conn.commit()
+            finally:
+                conn.close()
         await interaction.followup.send("✅ Filas 1x1 Emulador criadas!", ephemeral=True)
 
     @app_commands.command(name="2x2-emu", description="👥 Cria FILAS de 2x2 EMULADOR")
@@ -206,11 +203,12 @@ class FilaCog(commands.Cog):
             embed.add_field(name="🎮 Jogadores", value="Nenhum", inline=False)
             msg = await canal.send(embed=embed)
             conn = get_connection()
-            cur = conn.cursor()
-            cur.execute("INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, jogadores, msg_id, criado_em) VALUES (?, ?, '2x2-emu', 'emu', '', ?, ?)",
-                       (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
-            conn.commit()
-            conn.close()
+            try:
+                execute_query(conn, "INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, jogadores, msg_id, criado_em) VALUES (?, ?, '2x2-emu', 'emu', '', ?, ?)",
+                           (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
+                conn.commit()
+            finally:
+                conn.close()
         await interaction.followup.send("✅ Filas 2x2 Emulador criadas!", ephemeral=True)
 
     @app_commands.command(name="3x3-emu", description="👥 Cria FILAS de 3x3 EMULADOR")
@@ -232,11 +230,12 @@ class FilaCog(commands.Cog):
             embed.add_field(name="🎮 Jogadores", value="Nenhum", inline=False)
             msg = await canal.send(embed=embed)
             conn = get_connection()
-            cur = conn.cursor()
-            cur.execute("INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, jogadores, msg_id, criado_em) VALUES (?, ?, '3x3-emu', 'emu', '', ?, ?)",
-                       (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
-            conn.commit()
-            conn.close()
+            try:
+                execute_query(conn, "INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, jogadores, msg_id, criado_em) VALUES (?, ?, '3x3-emu', 'emu', '', ?, ?)",
+                           (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
+                conn.commit()
+            finally:
+                conn.close()
         await interaction.followup.send("✅ Filas 3x3 Emulador criadas!", ephemeral=True)
 
     @app_commands.command(name="4x4-emu", description="👥 Cria FILAS de 4x4 EMULADOR")
@@ -258,11 +257,12 @@ class FilaCog(commands.Cog):
             embed.add_field(name="🎮 Jogadores", value="Nenhum", inline=False)
             msg = await canal.send(embed=embed)
             conn = get_connection()
-            cur = conn.cursor()
-            cur.execute("INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, jogadores, msg_id, criado_em) VALUES (?, ?, '4x4-emu', 'emu', '', ?, ?)",
-                       (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
-            conn.commit()
-            conn.close()
+            try:
+                execute_query(conn, "INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, jogadores, msg_id, criado_em) VALUES (?, ?, '4x4-emu', 'emu', '', ?, ?)",
+                           (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
+                conn.commit()
+            finally:
+                conn.close()
         await interaction.followup.send("✅ Filas 4x4 Emulador criadas!", ephemeral=True)
 
     @app_commands.command(name="2x2-mob", description="📱 Cria FILAS de 2x2 MOBILE")
@@ -284,11 +284,12 @@ class FilaCog(commands.Cog):
             embed.add_field(name="🎮 Jogadores", value="Nenhum", inline=False)
             msg = await canal.send(embed=embed)
             conn = get_connection()
-            cur = conn.cursor()
-            cur.execute("INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, jogadores, msg_id, criado_em) VALUES (?, ?, '2x2-mob', 'mob', '', ?, ?)",
-                       (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
-            conn.commit()
-            conn.close()
+            try:
+                execute_query(conn, "INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, jogadores, msg_id, criado_em) VALUES (?, ?, '2x2-mob', 'mob', '', ?, ?)",
+                           (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
+                conn.commit()
+            finally:
+                conn.close()
         await interaction.followup.send("✅ Filas 2x2 Mobile criadas!", ephemeral=True)
 
     @app_commands.command(name="3x3-mob", description="📱 Cria FILAS de 3x3 MOBILE")
@@ -310,11 +311,12 @@ class FilaCog(commands.Cog):
             embed.add_field(name="🎮 Jogadores", value="Nenhum", inline=False)
             msg = await canal.send(embed=embed)
             conn = get_connection()
-            cur = conn.cursor()
-            cur.execute("INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, jogadores, msg_id, criado_em) VALUES (?, ?, '3x3-mob', 'mob', '', ?, ?)",
-                       (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
-            conn.commit()
-            conn.close()
+            try:
+                execute_query(conn, "INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, jogadores, msg_id, criado_em) VALUES (?, ?, '3x3-mob', 'mob', '', ?, ?)",
+                           (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
+                conn.commit()
+            finally:
+                conn.close()
         await interaction.followup.send("✅ Filas 3x3 Mobile criadas!", ephemeral=True)
 
     @app_commands.command(name="4x4-mob", description="📱 Cria FILAS de 4x4 MOBILE")
@@ -336,11 +338,12 @@ class FilaCog(commands.Cog):
             embed.add_field(name="🎮 Jogadores", value="Nenhum", inline=False)
             msg = await canal.send(embed=embed)
             conn = get_connection()
-            cur = conn.cursor()
-            cur.execute("INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, jogadores, msg_id, criado_em) VALUES (?, ?, '4x4-mob', 'mob', '', ?, ?)",
-                       (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
-            conn.commit()
-            conn.close()
+            try:
+                execute_query(conn, "INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, jogadores, msg_id, criado_em) VALUES (?, ?, '4x4-mob', 'mob', '', ?, ?)",
+                           (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
+                conn.commit()
+            finally:
+                conn.close()
         await interaction.followup.send("✅ Filas 4x4 Mobile criadas!", ephemeral=True)
 
     @app_commands.command(name="filamisto-2x2", description="🎮 Cria FILAS de 2x2 MISTO")
@@ -362,11 +365,12 @@ class FilaCog(commands.Cog):
             embed.add_field(name="👥 Jogadores", value="Nenhum", inline=False)
             msg = await canal.send(embed=embed)
             conn = get_connection()
-            cur = conn.cursor()
-            cur.execute("INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, vagas_emu, jogadores, msg_id, criado_em) VALUES (?, ?, '2x2-misto_1emu', 'misto', 1, '', ?, ?)",
-                       (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
-            conn.commit()
-            conn.close()
+            try:
+                execute_query(conn, "INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, vagas_emu, jogadores, msg_id, criado_em) VALUES (?, ?, '2x2-misto_1emu', 'misto', 1, '', ?, ?)",
+                           (guild_id, valor, msg.id, datetime.datetime.utcnow().isoformat()))
+                conn.commit()
+            finally:
+                conn.close()
         await interaction.followup.send("✅ Filas 2x2 Misto criadas!", ephemeral=True)
 
     @app_commands.command(name="filamisto-3x3", description="🎮 Cria FILAS de 3x3 MISTO")
@@ -388,12 +392,13 @@ class FilaCog(commands.Cog):
             embed.add_field(name="👥 Jogadores", value="Nenhum", inline=False)
             msg = await canal.send(embed=embed)
             conn = get_connection()
-            cur = conn.cursor()
-            for vagas in [1, 2]:
-                cur.execute("INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, vagas_emu, jogadores, msg_id, criado_em) VALUES (?, ?, ?, 'misto', ?, '', ?, ?)",
-                           (guild_id, valor, f"3x3-misto_{vagas}emu", vagas, msg.id, datetime.datetime.utcnow().isoformat()))
-            conn.commit()
-            conn.close()
+            try:
+                for vagas in [1, 2]:
+                    execute_query(conn, "INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, vagas_emu, jogadores, msg_id, criado_em) VALUES (?, ?, ?, 'misto', ?, '', ?, ?)",
+                               (guild_id, valor, f"3x3-misto_{vagas}emu", vagas, msg.id, datetime.datetime.utcnow().isoformat()))
+                conn.commit()
+            finally:
+                conn.close()
         await interaction.followup.send("✅ Filas 3x3 Misto criadas!", ephemeral=True)
 
     @app_commands.command(name="filamisto-4x4", description="🎮 Cria FILAS de 4x4 MISTO")
@@ -415,12 +420,13 @@ class FilaCog(commands.Cog):
             embed.add_field(name="👥 Jogadores", value="Nenhum", inline=False)
             msg = await canal.send(embed=embed)
             conn = get_connection()
-            cur = conn.cursor()
-            for vagas in [1, 2, 3]:
-                cur.execute("INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, vagas_emu, jogadores, msg_id, criado_em) VALUES (?, ?, ?, 'misto', ?, '', ?, ?)",
-                           (guild_id, valor, f"4x4-misto_{vagas}emu", vagas, msg.id, datetime.datetime.utcnow().isoformat()))
-            conn.commit()
-            conn.close()
+            try:
+                for vagas in [1, 2, 3]:
+                    execute_query(conn, "INSERT OR REPLACE INTO filas (guild_id, valor, modo, tipo_jogo, vagas_emu, jogadores, msg_id, criado_em) VALUES (?, ?, ?, 'misto', ?, '', ?, ?)",
+                               (guild_id, valor, f"4x4-misto_{vagas}emu", vagas, msg.id, datetime.datetime.utcnow().isoformat()))
+                conn.commit()
+            finally:
+                conn.close()
         await interaction.followup.send("✅ Filas 4x4 Misto criadas!", ephemeral=True)
 
 async def setup(bot):
