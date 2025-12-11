@@ -1,0 +1,40 @@
+modules = ["python-3.11", "web", "postgresql-16"]
+run = "python main.py"
+hidden = [".config", ".git", "node_modules", "dist", "__pycache__", "*.pyc"]
+
+[nix]
+channel = "stable-24_05"
+packages = ["libsodium"]
+
+[deployment]
+deploymentTarget = "static"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[env]
+PORT = "5000"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
+
+[agent]
+mockupState = "MOCKUP"
