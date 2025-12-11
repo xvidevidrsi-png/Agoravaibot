@@ -22,20 +22,76 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
+class ConnectionWrapper:
+    """Wrapper para manter interface compatível entre SQLite e PostgreSQL"""
+    def __init__(self, conn, is_postgres=False):
+        self.conn = conn
+        self.cursor_obj = None
+        self.is_postgres = is_postgres
+    
+    def cursor(self):
+        self.cursor_obj = self.conn.cursor()
+        return CursorWrapper(self.cursor_obj, self.is_postgres)
+    
+    def commit(self):
+        self.conn.commit()
+        
+    def rollback(self):
+        self.conn.rollback()
+    
+    def close(self):
+        if self.cursor_obj:
+            self.cursor_obj.close()
+        self.conn.close()
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+class CursorWrapper:
+    """Wrapper para interceptar execute e converter placeholders"""
+    def __init__(self, cursor, is_postgres=False):
+        self.cursor = cursor
+        self.is_postgres = is_postgres
+        
+    def execute(self, query, params=()):
+        if self.is_postgres:
+            query = query.replace('?', '%s')
+        return self.cursor.execute(query, params)
+        
+    def fetchone(self):
+        return self.cursor.fetchone()
+        
+    def fetchall(self):
+        return self.cursor.fetchall()
+        
+    def __getattr__(self, name):
+        return getattr(self.cursor, name)
+
 def get_connection():
     """Retorna conexão com PostgreSQL se DATABASE_URL existir, senão SQLite"""
     if DATABASE_URL:
-        conn = psycopg2.connect(DATABASE_URL)
-        # Configurar para usar cursor que retorna results como dict
-        conn.set_session(autocommit=False)
-        return conn
-    return sqlite3.connect("bot_zeus.db", timeout=1.0)
+        try:
+            conn = psycopg2.connect(DATABASE_URL)
+            # Configurar para usar cursor que retorna results como dict
+            # conn.set_session(autocommit=False)
+            return ConnectionWrapper(conn, is_postgres=True)
+        except Exception as e:
+            print(f"Erro ao conectar Postgres: {e}, tentando SQLite...")
+            
+    return ConnectionWrapper(sqlite3.connect("bot_zeus.db", timeout=10.0), is_postgres=False)
 
 def execute_query(conn, query, params=()):
     """Executa query compatível com SQLite e PostgreSQL"""
+    # Se conn for nosso wrapper, ele já tem cursor() que retorna CursorWrapper
+    # que lida com a substituição de ?.
+    # Se for conexão bruta (não deveria acontecer se usarmos get_connection), mantemos lógica antiga.
+    
     cur = conn.cursor()
     
-    # Converter placeholders SQLite (?) para PostgreSQL (%s) se necessário
+    # Se NÃO for nosso wrapper e for psycopg2 direto (caso legado)
     if isinstance(conn, psycopg2.extensions.connection):
         query = query.replace('?', '%s')
     
@@ -597,7 +653,7 @@ def usuario_get_stats(guild_id, user_id):
     return {"coins": 0, "vitorias": 0, "derrotas": 0}
 
 def fila_add_jogador(guild_id, valor, modo, user_id, tipo_jogo='mob'):
-    conn = sqlite3.connect(DB_FILE, timeout=1.0)
+    conn = get_connection()
     cur = conn.cursor()
     
     try:
@@ -627,7 +683,7 @@ def fila_add_jogador(guild_id, valor, modo, user_id, tipo_jogo='mob'):
     return jogadores
 
 def fila_remove_jogador(guild_id, valor, modo, user_id, tipo_jogo='mob'):
-    conn = sqlite3.connect(DB_FILE, timeout=1.0)
+    conn = get_connection()
     cur = conn.cursor()
     
     try:
@@ -688,7 +744,7 @@ def fila_remove_primeiros(guild_id, valor, modo, quantidade=2, tipo_jogo='mob'):
     return removidos, restantes
 
 def mediador_add(guild_id, user_id):
-    conn = sqlite3.connect(DB_FILE, timeout=1.0)
+    conn = get_connection()
     cur = conn.cursor()
     try:
         cur.execute("INSERT OR IGNORE INTO fila_mediadores (guild_id, user_id, adicionado_em) VALUES (?, ?, ?)", 
@@ -722,7 +778,7 @@ def mediador_get_next(guild_id):
     return None
 
 def mediador_rotacionar(guild_id, user_id):
-    conn = sqlite3.connect(DB_FILE, timeout=1.0)
+    conn = get_connection()
     cur = conn.cursor()
     try:
         cur.execute("UPDATE fila_mediadores SET adicionado_em = ? WHERE guild_id = ? AND user_id = ?", 
@@ -1209,7 +1265,7 @@ class FilaMobView(View):
 
 async def atualizar_msg_fila_mob(canal, valor, tipo_fila, tipo_jogo='mob'):
     guild_id = canal.guild.id
-    conn = sqlite3.connect(DB_FILE, timeout=1.0)
+    conn = get_connection()
     cur = conn.cursor()
     cur.execute("SELECT msg_id FROM filas WHERE guild_id = ? AND valor = ? AND modo = ? AND tipo_jogo = ? LIMIT 1", (guild_id, valor, tipo_fila, tipo_jogo))
     row = cur.fetchone()
@@ -5446,8 +5502,8 @@ async def start_web_server():
     runner = web.AppRunner(app)
     await runner.setup()
     
-    # Porta dinâmica (necessário para Render) ou fixa 5000 (local)
-    port = int(os.getenv("PORT", 5000))
+    # Porta fixa: 5000
+    port = 5000
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
     print(f'✅ Servidor HTTP rodando na porta {port}')
